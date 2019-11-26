@@ -5,11 +5,12 @@ load('ds114.mat')
 % deg90W - angular velocity
 
 % setup
-g_0 = [0 0 -1 0];
+g_0 = [0 0 0 1];
 g_curr = g_0;
 
 % -------- tweakable parameters ---------
-sample = npW; % data file in use
+sampleW = linW; % data file in use
+sampleA = linA;
 t_step = 1/114;
 deriv_order = 5;
 noise_delineator = 100000; % .65 for 3rd, 1.12 for 4th, 2.2 for 5th
@@ -17,38 +18,38 @@ noise_delineator = 100000; % .65 for 3rd, 1.12 for 4th, 2.2 for 5th
 
 % keeps 3rd order difference for reference
 % magn_track = zeros(4, 1);
-magn_arr = zeros(size(sample, 1), 1);
+magn_arr = zeros(size(sampleW, 1), 1);
 
 % matrix containing all g vectors throughout computation
-g_track = zeros(size(sample, 1), 4);
-g_track(1,:) = g_0;
-g_track(2,:) = g_0;
-g_track(3,:) = g_0;
-g_track(4,:) = g_0;
-g_track(5,:) = g_0;
-g_track(6,:) = g_0;
+g_track = zeros(size(sampleW, 1), 4);
+% g_track(1,:) = g_0;
+% g_track(2,:) = g_0;
+% g_track(3,:) = g_0;
+% g_track(4,:) = g_0;
+% g_track(5,:) = g_0;
+% g_track(6,:) = g_0;
 
 %diff_old = diff(magn_arr(1:4), 3)
-for i = 6:size(sample, 1)
+for i = 1:size(sampleW, 1)
     % normalize pure q vector -> wx, wy, wz
     % conjugate is negation of normalized q vector
     
     % find magnitude of pure q vector -> rot angle
     
     % (q)(g_curr)(q*)
-    w = sample(i,:); % grab w vector
+    w = sampleW(i,:); % grab w vector
     [magn, g_curr] = quaternion_rot(w, g_curr, t_step);
 
-    % compute the snap for comparison to current jerk
-    snap = diff(magn_arr(i - deriv_order:i), deriv_order)
-    
-    if (abs(snap) > noise_delineator)
-        g_track(i,:) = g_track(i - 1, :);
-        g_curr = g_track(i,:);
-    else
-        g_track(i,:) = g_curr;
-    end    
-    
+%     % compute the snap for comparison to current jerk
+%     snap = diff(magn_arr(i - deriv_order:i), deriv_order)
+%     
+%     if (abs(snap) > noise_delineator)
+%         g_track(i,:) = g_track(i - 1, :);
+%         g_curr = g_track(i,:);
+%     else
+%         g_track(i,:) = g_curr;
+%     end    
+    g_track(i,:) = g_curr;
     magn_arr(i) = magn;
 end
 
@@ -58,6 +59,21 @@ fprintf("Final gravity vector: ");
 disp(g_track(size(g_track, 1), 2:4)) % last gravity vector
 
 plot(g_track(:, 2:end))
+
+corrA = zeros(size(sampleW,1), 3);
+
+for i = 1:size(sampleA, 1)
+    corrA(i,1) = sampleA(i, 1) + g_track(i, 2);
+    corrA(i,2) = sampleA(i, 2) + g_track(i, 3);
+    corrA(i,3) = sampleA(i, 3) - g_track(i, 4);
+end
+
+figure
+plot(sampleA);
+
+figure
+plot(corrA);
+title('Corrected Acceleration');
 
 function [magn, g_corrected] = quaternion_rot(w, g_curr, t_step)
     magn = sqrt( w(1)^2 + w(2)^2 + w(3)^2 ); % find magnitude of w

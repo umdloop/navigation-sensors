@@ -12,7 +12,7 @@ load('ds10.mat')
 % standard deviation for velocity: +- 2 m/s
 
 % sensor data
-sensor_datA = linA;
+sensor_datA = sgimpA;
 
 % noise profile for accleration
 np_dataA = npA;
@@ -61,7 +61,7 @@ for index = 1:size(sensor_datA,1)
     
     % ~~~ update step ~~~
     z_k = transpose(sensor_datA(index, 1:2));
-    K = P_k*transpose(H_k) * inv(H_k*P_k*transpose(H_k) + R_k);
+    K = P_k*transpose(H_k) * pinv(H_k*P_k*transpose(H_k) + R_k);
     
     state_upd = state + K*(z_k - H_k*state);
     P_upd = P_k - K * H_k * P_k;
